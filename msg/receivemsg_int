@@ -1,0 +1,26 @@
+void EUSCIA1_IRQHandler(void)
+{
+    uint32_t status = UART_getEnabledInterruptStatus(EUSCI_A1_BASE);
+
+    if(status & EUSCI_A_UART_RECEIVE_INTERRUPT_FLAG)
+    {
+        char rxChar = UART_receiveData(EUSCI_A1_BASE);
+        if(receivePiData(rxChar) == -1)
+        {
+            uart1RxBuff[uart1RxLength++] = '\r';
+            uart1RxBuff[uart1RxLength++] = '\n';
+            uart1RxBuff[uart1RxLength] = '\0';
+
+            msg::Message::ParseJson(uart1RxBuff);
+            char send[30];
+            msg::receivedMotorSpeed.PackJson(send);
+            for (int i = 0; i < 60 && send[i] != '\0'; ++i)
+            {
+                UART_transmitData(EUSCI_A1_BASE, send[i]);
+            }
+
+
+            uart1RxLength = 0;
+        }
+    }
+}
